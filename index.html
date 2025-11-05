@@ -116,7 +116,6 @@ const state = {
   totals:null,
   years:[],
   cuisines:[],
-  filters:{ years:[null,null], topN:6, pick: new Set() },
   view:'total'
 };
 
@@ -182,20 +181,25 @@ function lineTotal(){
   const years = state.totals.map(r=>+r['__Year']);
   const vals = state.totals.map(r=>+r['restaurants']);
   const data = [{ x: years, y: vals, mode:'lines+markers', name:'Total' }];
-  const layout = baseLayout('Total restaurants by year');
+  const layout = baseLayoutTime('Total restaurants by year');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
 }
 
 function netChange(){
   const {rows, use} = getFiltered();
-  if (!rows.length) return;
+  if (!rows.length || use.length === 0) { Plotly.purge('chart'); return; }
   const first = rows[0], last = rows[rows.length-1];
   const items = use.map(c => ({ c, v: (+last[c]||0) - (+first[c]||0) }));
-  items.sort((a,b)=> Math.abs(b.v)-Math.abs(a.v));
+  items.sort((a,b)=> b.v - a.v);
   const data = [{
-    type:'bar', x: items.map(i=>i.c), y: items.map(i=>i.v)
+    type:'bar',
+    x: items.map(i=>i.c),
+    y: items.map(i=>i.v),
+    text: items.map(i=> String(i.v)),
+    textposition:'outside',
+    cliponaxis:false
   }];
-  const layout = baseLayout(`Net change (first→last in range)`);
+  const layout = baseLayoutCat('Net change (first→last in range)');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
 }
 
@@ -207,7 +211,7 @@ function indexedGrowth(){
     const y = rows.map(r => baseVal? ((+r[c])/baseVal)*100 : 0);
     return { x: years, y, mode:'lines+markers', name:c };
   });
-  const layout = baseLayout(`Indexed growth by cuisine (base=${years[0]}=100)`);
+  const layout = baseLayoutTime(`Indexed growth by cuisine (base=${years[0]}=100)`);
   layout.yaxis.title = 'Index';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
 }
@@ -218,9 +222,7 @@ function yoy(){
     const y = rows.map((r,i)=> i===0 ? 0 : (+r[c]||0) - (+rows[i-1][c]||0));
     return { x: years, y, mode:'lines+markers', name:c };
   });
-  const layout = baseLayout('YoY net additions by cuisine');
-  layout.shapes = vertRefs();
-  layout.yaxis.zeroline = true;
+  const layout = baseLayoutTime('YoY net additions by cuisine');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
 }
 
@@ -233,7 +235,7 @@ function share(){
     });
     return { x: years, y, mode:'lines+markers', name:c };
   });
-  const layout = baseLayout('Cuisine share trajectories');
+  const layout = baseLayoutTime('Cuisine share trajectories');
   layout.yaxis.tickformat = ',.0%';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
 }
@@ -253,7 +255,7 @@ function diversity(){
     { x: years, y:H, name:'Shannon entropy', mode:'lines+markers', yaxis:'y1' },
     { x: years, y:EN, name:'Effective no. of cuisines (1/HHI)', mode:'lines+markers', yaxis:'y2' }
   ];
-  const layout = baseLayout('Diversity over time');
+  const layout = baseLayoutTime('Diversity over time');
   layout.yaxis.title='H';
   layout.yaxis2={ title:'1/HHI', overlaying:'y', side:'right' };
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
@@ -261,7 +263,6 @@ function diversity(){
 
 function renderTable(){
   const {rows, use, years} = getFiltered();
-  // Build YoY% text
   const head = ['Cuisine'].concat(years.map(y=>String(y)));
   let html = '<table><thead><tr>'+ head.map(h=>`<th>${h}</th>`).join('') + '</tr></thead><tbody>';
   use.forEach(c => {
@@ -271,7 +272,7 @@ function renderTable(){
       if(i===0){ tr += `<td>${val}</td>`; }
       else {
         const prev = (+rows[i-1][c]||0);
-        const pct = prev? ((val-prev)/prev*100).toFixed(1)+'%' : 'n/a';
+        const pct = prev? (((val-prev)/prev*100).toFixed(1))+'%' : 'n/a';
         const sign = (prev && (val-prev)>=0) ? '+' : '';
         tr += `<td>${val} (${sign}${pct})</td>`;
       }
@@ -284,7 +285,7 @@ function renderTable(){
   document.getElementById('tableWrap').style.display='block';
 }
 
-function baseLayout(title){
+function baseLayoutTime(title){
   return {
     title:{text:title, font:{size:16}},
     paper_bgcolor:'rgba(0,0,0,0)',
@@ -293,6 +294,17 @@ function baseLayout(title){
     xaxis:{title:'Year', tickmode:'linear', dtick:1, gridcolor:'rgba(255,255,255,.08)'},
     yaxis:{title:'Count', gridcolor:'rgba(255,255,255,.08)'},
     shapes: vertRefs()
+  };
+}
+
+function baseLayoutCat(title){
+  return {
+    title:{text:title, font:{size:16}},
+    paper_bgcolor:'rgba(0,0,0,0)',
+    plot_bgcolor:'rgba(0,0,0,0)',
+    margin:{t:48,r:20,b:80,l:56},
+    xaxis:{title:'Cuisine', type:'category', tickangle:-30, gridcolor:'rgba(255,255,255,.08)'},
+    yaxis:{title:'Net change', gridcolor:'rgba(255,255,255,.08)'}
   };
 }
 
@@ -366,7 +378,7 @@ document.getElementById('dlCSV').addEventListener('click', ()=>{
   rows.forEach(r=>{
     lines.push([r['__Year']].concat(use.map(c=> r[c])).join(','));
   });
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const blob = new Blob([lines.join('\\n')], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = 'filtered_data.csv'; a.click();
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
