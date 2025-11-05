@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hong Kong Restaurant Dynamics • Interactive (2016–2025)</title>
+<title>Hong Kong Restaurant Dynamics • Interactive (High-Contrast)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
 :root{
-  --bg:#0a0f1a;--card:#111827;--ink:#e5edff;--muted:#a8b6d6;--accent:#6ea8fe;--accent2:#7ee787;
-  --border:rgba(255,255,255,.08);
+  --bg:#05070d;--card:#0e1422;--ink:#f6f9ff;--muted:#b9c7e6;--accent:#7aa7ff;--accent2:#7ee787;
+  --border:rgba(255,255,255,.14);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -20,19 +20,19 @@ a{color:var(--accent)}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 h1{font-size:22px;margin:0}
 .badge{padding:4px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:13px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 2px 24px rgba(0,0,0,.25)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 2px 24px rgba(0,0,0,.35)}
 .grid{display:grid;gap:12px}
 @media(min-width:980px){.grid{grid-template-columns:300px 1fr}}
 label{display:block;color:var(--muted);font-size:13px;margin:8px 0 4px}
 select, input[type="number"], input[type="text"]{
-  width:100%;background:transparent;border:1px solid var(--border);color:var(--ink);
+  width:100%;background:#0a0f1a;border:1px solid var(--border);color:var(--ink);
   padding:8px 10px;border-radius:10px;outline:none;
 }
 .checkbox-list{max-height:210px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:8px}
 .checkbox-list label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--ink)}
 .row{display:flex;gap:10px;flex-wrap:wrap}
-.btn{background:transparent;border:1px solid var(--accent);color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
-.btn:hover{background:rgba(110,168,254,.12)}
+.btn{background:#0a0f1a;border:1px solid var(--accent);color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
+.btn:hover{background:rgba(122,167,255,.12)}
 .btn.secondary{border-color:var(--border);color:var(--muted)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 hr{border:none;border-top:1px solid var(--border);margin:12px 0}
@@ -41,10 +41,11 @@ footer{color:var(--muted);font-size:13px;margin-top:16px}
 .tabbar{display:flex;gap:6px;flex-wrap:wrap}
 .tabbar .btn{border-color:var(--border)}
 .tabbar .btn.active{border-color:var(--accent2)}
-table{width:100%;border-collapse:collapse}
+table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
-thead th{border-bottom:2px solid var(--border)}
+thead th{border-bottom:2px solid var(--border);background:#0a1020}
+tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 .caption{color:var(--muted);font-size:13px;margin-top:6px}
 .smallnote{color:var(--muted);font-size:12px}
 </style>
@@ -53,7 +54,7 @@ thead th{border-bottom:2px solid var(--border)}
 <div class="container">
   <header>
     <h1>Hong Kong Restaurant Dynamics • Interactive (2016–2025)</h1>
-    <span class="badge">Single-file app • Plotly + PapaParse</span>
+    <span class="badge">High-contrast theme • Plotly + PapaParse</span>
   </header>
 
   <div class="grid">
@@ -109,18 +110,29 @@ thead th{border-bottom:2px solid var(--border)}
         <button class="btn" data-view="diversity">Diversity over time</button>
         <button class="btn" data-view="table">Table</button>
       </div>
-      <div id="chart" style="height:540px;"></div>
-      <div id="tableWrap" style="display:none; max-height:540px; overflow:auto;"></div>
+      <div id="chart" style="height:560px;"></div>
+      <div id="tableWrap" style="display:none; max-height:560px; overflow:auto;"></div>
       <p id="caption" class="caption"></p>
     </main>
   </div>
 
   <footer>
-    <p class="smallnote">Tips: host this page on GitHub Pages. This app reads CSVs from <code>./data/</code> (same repo). No build step required.</p>
+    <p class="smallnote">This app uses a high-contrast palette and thicker axes for classroom visibility. Host on GitHub Pages; CSVs are read from <code>./data/</code>.</p>
   </footer>
 </div>
 
 <script>
+// High-contrast colorway
+const COLORWAY = [
+  '#60a5fa','#22c55e','#f43f5e','#f59e0b','#a855f7','#06b6d4','#f472b6','#94a3b8',
+  '#16a34a','#fb7185','#fcd34d','#8b5cf6'
+];
+
+const AXIS_LINE = {showline:true, linewidth:1.6, linecolor:'rgba(255,255,255,.75)'};
+const GRID_COLOR = 'rgba(255,255,255,.18)';
+const TICK_FONT = {color:'#f6f9ff', size:13};
+const TITLE_FONT = {color:'#f6f9ff', size:16};
+
 const state = {
   dataFolder:'./data/',
   ycWide:null,
@@ -190,7 +202,6 @@ function getFiltered(){
   if (picked.length){
     use = picked.slice(0);
   } else {
-    // topN by total in range
     const totals = Object.fromEntries(cuisines.map(c=>[c,0]));
     rows.forEach(r => cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
     use = Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0, topN).map(([c,_])=>c);
@@ -201,37 +212,32 @@ function getFiltered(){
 function lineTotal(){
   const years = state.totals.map(r=>+r['__Year']);
   const vals = state.totals.map(r=>+r['restaurants']);
-  const data = [{ x: years, y: vals, mode:'lines+markers', name:'Total restaurants' }];
+  const data = [{ x: years, y: vals, mode:'lines+markers', name:'Total restaurants', line:{width:3}, marker:{size:7} }];
   const layout = baseLayoutTime('Total restaurants by year');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Total restaurants by year. Use the year range on the left to focus on specific periods (e.g., pre-2019, 2020–2022, 2023+).');
+  setCaption('Total restaurants by year. High-contrast axes and thicker lines for visibility.');
 }
 
 function cuisineLine(){
   const sel = document.getElementById('singleCuisine').value;
   const ys = state.years;
   const series = state.ycWide.map(r => ({ y:(+r[sel]||0), x:r['__Year'] }));
-  const data = [{ x: ys, y: series.map(d=>d.y), mode:'lines+markers', name: sel }];
+  const data = [{ x: ys, y: series.map(d=>d.y), mode:'lines+markers', name: sel, line:{width:3}, marker:{size:7} }];
   const layout = baseLayoutTime(`Cuisine line: ${sel}`);
   layout.yaxis.title = 'Count';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Single-cuisine time series. This shows absolute restaurant counts for the selected cuisine across years.');
+  setCaption('Single-cuisine time series with thicker stroke and brighter colors.');
 }
 
 function netChange(){
   const {rows, use, topN, picked} = getFiltered();
   if (!rows.length) { Plotly.purge('chart'); return; }
   const first = rows[0], last = rows[rows.length-1];
-  // If user picked fewer than topN, fill with top categories to reach topN
   let finalUse = use.slice(0);
   if (picked.length && finalUse.length < topN){
     const totals = Object.fromEntries(state.cuisines.map(c=>[c,0]));
     rows.forEach(r => state.cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
-    const fillers = Object.entries(totals)
-      .filter(([c,_]) => !finalUse.includes(c))
-      .sort((a,b)=>b[1]-a[1])
-      .slice(0, topN - finalUse.length)
-      .map(([c,_])=>c);
+    const fillers = Object.entries(totals).filter(([c,_]) => !finalUse.includes(c)).sort((a,b)=>b[1]-a[1]).slice(0, topN-finalUse.length).map(([c,_])=>c);
     finalUse = finalUse.concat(fillers);
   }
   const items = finalUse.map(c => ({ c, v: (+last[c]||0) - (+first[c]||0) }));
@@ -242,11 +248,12 @@ function netChange(){
     y: items.map(i=>i.v),
     text: items.map(i=> String(i.v)),
     textposition:'outside',
-    cliponaxis:false
+    cliponaxis:false,
+    marker:{line:{color:'rgba(255,255,255,.45)', width:1}}
   }];
   const layout = baseLayoutCat('Net change (first→last in range)');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Net change equals the last-year minus the first-year count within the selected range. Bars are sorted by change. If you pick fewer cuisines, the chart auto-fills to Top N so you still see a broad comparison.');
+  setCaption('Net change equals last minus first within the selected years. Category axis, bright bars, and value labels for readability.');
 }
 
 function indexedGrowth(){
@@ -255,24 +262,24 @@ function indexedGrowth(){
   const data = use.map(c => {
     const baseVal = (+base[c]||0);
     const y = rows.map(r => baseVal? ((+r[c])/baseVal)*100 : 0);
-    return { x: years, y, mode:'lines+markers', name:c };
+    return { x: years, y, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
   });
   const layout = baseLayoutTime(`Indexed growth by cuisine (base=${years[0]}=100)`);
   layout.yaxis.title = 'Index';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Indexed growth normalizes each cuisine to 100 at the first year, highlighting relative speed of expansion rather than absolute size.');
+  setCaption('Relative growth with base-year = 100. Thicker strokes and clear ticks.');
 }
 
 function yoy(){
   const {rows, use, years} = getFiltered();
   const data = use.map(c => {
     const y = rows.map((r,i)=> i===0 ? 0 : (+r[c]||0) - (+rows[i-1][c]||0));
-    return { x: years, y, mode:'lines+markers', name:c };
+    return { x: years, y, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
   });
   const layout = baseLayoutTime('YoY net additions by cuisine');
   layout.yaxis.zeroline = true;
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Year-over-year net additions show annual momentum (above zero = expansion; below zero = contraction).');
+  setCaption('Annual momentum (above zero = expansion; below zero = contraction).');
 }
 
 function share(){
@@ -282,12 +289,12 @@ function share(){
       const s = sumCuisine(r);
       return s? (+r[c])/s : 0;
     });
-    return { x: years, y, mode:'lines+markers', name:c };
+    return { x: years, y, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
   });
   const layout = baseLayoutTime('Cuisine share trajectories');
   layout.yaxis.tickformat = ',.0%';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Share trajectories track percentage of total restaurants for each cuisine. Useful for structural shifts across periods.');
+  setCaption('Percentage shares across time. Good for structural shifts.');
 }
 
 function diversity(){
@@ -302,14 +309,14 @@ function diversity(){
     EN.push(1/ hhi(ps));
   });
   const data=[
-    { x: years, y:H, name:'Shannon entropy', mode:'lines+markers', yaxis:'y1' },
-    { x: years, y:EN, name:'Effective no. of cuisines (1/HHI)', mode:'lines+markers', yaxis:'y2' }
+    { x: years, y:H, name:'Shannon entropy', mode:'lines+markers', yaxis:'y1', line:{width:3}, marker:{size:7} },
+    { x: years, y:EN, name:'Effective no. of cuisines (1/HHI)', mode:'lines+markers', yaxis:'y2', line:{width:3}, marker:{size:7} }
   ];
   const layout = baseLayoutTime('Diversity over time');
   layout.yaxis.title='H';
-  layout.yaxis2={ title:'1/HHI', overlaying:'y', side:'right' };
+  layout.yaxis2={ title:'1/HHI', overlaying:'y', side:'right', tickfont:TICK_FONT, showline:true, linecolor:AXIS_LINE.linecolor, linewidth:AXIS_LINE.linewidth, gridcolor:GRID_COLOR };
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Two diversity lenses: Shannon entropy (left axis) and the effective number of cuisines 1/HHI (right axis).');
+  setCaption('Two diversity lenses: Shannon entropy and effective number of cuisines (1/HHI).');
 }
 
 function renderTable(){
@@ -334,28 +341,32 @@ function renderTable(){
   document.getElementById('tableWrap').innerHTML = html;
   document.getElementById('chart').style.display='none';
   document.getElementById('tableWrap').style.display='block';
-  setCaption('Each cell shows the count and (in parentheses) the YoY percentage change relative to the previous year.');
+  setCaption('Table with YoY % in parentheses. Use Export → Download filtered CSV to save the current slice.');
 }
 
 function baseLayoutTime(title){
   return {
-    title:{text:title, font:{size:16}},
+    title:{text:title, font:TITLE_FONT},
+    colorway: COLORWAY,
     paper_bgcolor:'rgba(0,0,0,0)',
     plot_bgcolor:'rgba(0,0,0,0)',
-    margin:{t:48,r:20,b:48,l:56},
-    xaxis:{title:'Year', tickmode:'linear', dtick:1, gridcolor:'rgba(255,255,255,.08)'},
-    yaxis:{title:'Count', gridcolor:'rgba(255,255,255,.08)'},
+    margin:{t:48,r:20,b:56,l:64},
+    xaxis:Object.assign({title:'Year', tickmode:'linear', dtick:1, gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
+    yaxis:Object.assign({title:'Count', gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT, zerolinecolor:'rgba(255,255,255,.5)'}, AXIS_LINE),
+    hoverlabel:{bgcolor:'#0e1422',bordercolor:'#7aa7ff',font:{color:'#f6f9ff'}},
     shapes: vertRefs()
   };
 }
 function baseLayoutCat(title){
   return {
-    title:{text:title, font:{size:16}},
+    title:{text:title, font:TITLE_FONT},
+    colorway: COLORWAY,
     paper_bgcolor:'rgba(0,0,0,0)',
     plot_bgcolor:'rgba(0,0,0,0)',
-    margin:{t:48,r:20,b:90,l:56},
-    xaxis:{title:'Cuisine', type:'category', tickangle:-30, gridcolor:'rgba(255,255,255,.08)'},
-    yaxis:{title:'Net change', gridcolor:'rgba(255,255,255,.08)'}
+    margin:{t:48,r:20,b:100,l:64},
+    xaxis:Object.assign({title:'Cuisine', type:'category', tickangle:-30, gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
+    yaxis:Object.assign({title:'Net change', gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
+    hoverlabel:{bgcolor:'#0e1422',bordercolor:'#7aa7ff',font:{color:'#f6f9ff'}}
   };
 }
 function vertRefs(){
@@ -364,7 +375,7 @@ function vertRefs(){
     if (state.years.includes(v)){
       refs.push({
         type:'line', x0:v, x1:v, y0:0, y1:1, xref:'x', yref:'paper',
-        line:{dash:'dot', width:1, color:'rgba(255,255,255,.5)'}
+        line:{dash:'dot', width:1.5, color:'rgba(255,255,255,.6)'}
       });
     }
   });
@@ -381,7 +392,6 @@ function setCaption(text){
   document.getElementById('caption').textContent = text;
 }
 function render(){
-  // view switcher
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('chart').style.display='block';
   if (state.view==='total') lineTotal();
@@ -429,7 +439,7 @@ document.getElementById('dlPNG').addEventListener('click', async ()=>{
     return;
   }
   const gd = document.getElementById('chart');
-  const url = await Plotly.toImage(gd, {format:'png', width:1200, height:700, scale:2});
+  const url = await Plotly.toImage(gd, {format:'png', width:1280, height:720, scale:2});
   const a = document.createElement('a'); a.href = url; a.download = 'chart.png';
   a.click();
 });
