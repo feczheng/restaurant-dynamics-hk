@@ -22,7 +22,7 @@ h1{font-size:22px;margin:0}
 .badge{padding:4px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:13px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 2px 24px rgba(0,0,0,.25)}
 .grid{display:grid;gap:12px}
-@media(min-width:980px){.grid{grid-template-columns:260px 1fr}}
+@media(min-width:980px){.grid{grid-template-columns:300px 1fr}}
 label{display:block;color:var(--muted);font-size:13px;margin:8px 0 4px}
 select, input[type="number"], input[type="text"]{
   width:100%;background:transparent;border:1px solid var(--border);color:var(--ink);
@@ -45,6 +45,8 @@ table{width:100%;border-collapse:collapse}
 th,td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 thead th{border-bottom:2px solid var(--border)}
+.caption{color:var(--muted);font-size:13px;margin-top:6px}
+.smallnote{color:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
@@ -61,7 +63,7 @@ thead th{border-bottom:2px solid var(--border)}
         <input id="dataFolder" type="text" value="./data/" />
         <button class="btn" id="loadBtn">Load CSV</button>
       </div>
-      <small class="help">Place the CSV files in this folder: <code>year_cuisine_counts_wide.csv</code>, <code>yearly_totals_summary.csv</code>.</small>
+      <small class="help">Place CSVs in this folder: <code>year_cuisine_counts_wide.csv</code>, <code>yearly_totals_summary.csv</code>.</small>
 
       <hr/>
       <label>Years</label>
@@ -70,11 +72,18 @@ thead th{border-bottom:2px solid var(--border)}
         <input id="yearEnd" type="number" placeholder="End" />
       </div>
 
-      <label>Top N cuisines</label>
-      <input id="topN" type="number" min="1" max="20" value="6" />
+      <label>Top N cuisines (used when none picked)</label>
+      <input id="topN" type="number" min="1" max="24" value="8" />
 
-      <label>Or pick cuisines</label>
+      <label>Pick cuisines (optional)</label>
+      <div class="toolbar">
+        <button class="btn secondary" id="selectAll">Select all</button>
+        <button class="btn secondary" id="clearAll">Clear</button>
+      </div>
       <div id="cuisineList" class="checkbox-list"></div>
+
+      <label>Single cuisine (for “Cuisine line” view)</label>
+      <select id="singleCuisine"></select>
 
       <div class="toolbar">
         <button class="btn" id="applyFilter">Apply filters</button>
@@ -92,6 +101,7 @@ thead th{border-bottom:2px solid var(--border)}
     <main class="card">
       <div class="tabbar">
         <button class="btn active" data-view="total">Total line</button>
+        <button class="btn" data-view="cline">Cuisine line</button>
         <button class="btn" data-view="net">Net change bar (first→last)</button>
         <button class="btn" data-view="indexed">Indexed growth (base=first)</button>
         <button class="btn" data-view="yoy">YoY net additions</button>
@@ -101,11 +111,12 @@ thead th{border-bottom:2px solid var(--border)}
       </div>
       <div id="chart" style="height:540px;"></div>
       <div id="tableWrap" style="display:none; max-height:540px; overflow:auto;"></div>
+      <p id="caption" class="caption"></p>
     </main>
   </div>
 
   <footer>
-    <p>Tips: host this page on GitHub Pages. This app reads CSVs from <code>./data/</code> (same repo). No build step required.</p>
+    <p class="smallnote">Tips: host this page on GitHub Pages. This app reads CSVs from <code>./data/</code> (same repo). No build step required.</p>
   </footer>
 </div>
 
@@ -129,10 +140,13 @@ async function loadData(){
   state.totals = totals;
   state.years = wide.map(r => +r['__Year']);
   state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year');
-  // UI
+  // UI defaults
   document.getElementById('yearStart').value = Math.min(...state.years);
   document.getElementById('yearEnd').value = Math.max(...state.years);
+  const defaultTopN = Math.min(8, state.cuisines.length);
+  document.getElementById('topN').value = defaultTopN;
   renderCuisineList(state.cuisines);
+  renderSingleCuisine(state.cuisines);
   render();
 }
 
@@ -156,40 +170,71 @@ function renderCuisineList(list){
     wrap.appendChild(div);
   });
 }
+function renderSingleCuisine(list){
+  const sel = document.getElementById('singleCuisine');
+  sel.innerHTML = '';
+  list.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+}
 
 function getFiltered(){
   const ys = [+document.getElementById('yearStart').value, +document.getElementById('yearEnd').value];
-  const topN = +document.getElementById('topN').value || 6;
+  const topN = +document.getElementById('topN').value || 8;
   const picked = Array.from(document.querySelectorAll('#cuisineList input:checked')).map(i=>i.value);
-  // Rows by year
   const rows = state.ycWide.filter(r => r['__Year'] >= ys[0] && r['__Year'] <= ys[1]);
   const cuisines = state.cuisines.slice();
-  // Choose cuisines
-  let use = cuisines;
+  let use;
   if (picked.length){
-    use = picked;
+    use = picked.slice(0);
   } else {
     // topN by total in range
-    const totals = Object.fromEntries(use.map(c=>[c,0]));
-    rows.forEach(r => use.forEach(c => { totals[c] += (+r[c]||0); }));
+    const totals = Object.fromEntries(cuisines.map(c=>[c,0]));
+    rows.forEach(r => cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
     use = Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0, topN).map(([c,_])=>c);
   }
-  return { rows, use, years: rows.map(r=>+r['__Year']) };
+  return { rows, use, years: rows.map(r=>+r['__Year']), topN, picked };
 }
 
 function lineTotal(){
   const years = state.totals.map(r=>+r['__Year']);
   const vals = state.totals.map(r=>+r['restaurants']);
-  const data = [{ x: years, y: vals, mode:'lines+markers', name:'Total' }];
+  const data = [{ x: years, y: vals, mode:'lines+markers', name:'Total restaurants' }];
   const layout = baseLayoutTime('Total restaurants by year');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
+  setCaption('Total restaurants by year. Use the year range on the left to focus on specific periods (e.g., pre-2019, 2020–2022, 2023+).');
+}
+
+function cuisineLine(){
+  const sel = document.getElementById('singleCuisine').value;
+  const ys = state.years;
+  const series = state.ycWide.map(r => ({ y:(+r[sel]||0), x:r['__Year'] }));
+  const data = [{ x: ys, y: series.map(d=>d.y), mode:'lines+markers', name: sel }];
+  const layout = baseLayoutTime(`Cuisine line: ${sel}`);
+  layout.yaxis.title = 'Count';
+  Plotly.newPlot('chart', data, layout, {displayModeBar:true});
+  setCaption('Single-cuisine time series. This shows absolute restaurant counts for the selected cuisine across years.');
 }
 
 function netChange(){
-  const {rows, use} = getFiltered();
-  if (!rows.length || use.length === 0) { Plotly.purge('chart'); return; }
+  const {rows, use, topN, picked} = getFiltered();
+  if (!rows.length) { Plotly.purge('chart'); return; }
   const first = rows[0], last = rows[rows.length-1];
-  const items = use.map(c => ({ c, v: (+last[c]||0) - (+first[c]||0) }));
+  // If user picked fewer than topN, fill with top categories to reach topN
+  let finalUse = use.slice(0);
+  if (picked.length && finalUse.length < topN){
+    const totals = Object.fromEntries(state.cuisines.map(c=>[c,0]));
+    rows.forEach(r => state.cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
+    const fillers = Object.entries(totals)
+      .filter(([c,_]) => !finalUse.includes(c))
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0, topN - finalUse.length)
+      .map(([c,_])=>c);
+    finalUse = finalUse.concat(fillers);
+  }
+  const items = finalUse.map(c => ({ c, v: (+last[c]||0) - (+first[c]||0) }));
   items.sort((a,b)=> b.v - a.v);
   const data = [{
     type:'bar',
@@ -201,6 +246,7 @@ function netChange(){
   }];
   const layout = baseLayoutCat('Net change (first→last in range)');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
+  setCaption('Net change equals the last-year minus the first-year count within the selected range. Bars are sorted by change. If you pick fewer cuisines, the chart auto-fills to Top N so you still see a broad comparison.');
 }
 
 function indexedGrowth(){
@@ -214,6 +260,7 @@ function indexedGrowth(){
   const layout = baseLayoutTime(`Indexed growth by cuisine (base=${years[0]}=100)`);
   layout.yaxis.title = 'Index';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
+  setCaption('Indexed growth normalizes each cuisine to 100 at the first year, highlighting relative speed of expansion rather than absolute size.');
 }
 
 function yoy(){
@@ -223,7 +270,9 @@ function yoy(){
     return { x: years, y, mode:'lines+markers', name:c };
   });
   const layout = baseLayoutTime('YoY net additions by cuisine');
+  layout.yaxis.zeroline = true;
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
+  setCaption('Year-over-year net additions show annual momentum (above zero = expansion; below zero = contraction).');
 }
 
 function share(){
@@ -238,6 +287,7 @@ function share(){
   const layout = baseLayoutTime('Cuisine share trajectories');
   layout.yaxis.tickformat = ',.0%';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
+  setCaption('Share trajectories track percentage of total restaurants for each cuisine. Useful for structural shifts across periods.');
 }
 
 function diversity(){
@@ -259,6 +309,7 @@ function diversity(){
   layout.yaxis.title='H';
   layout.yaxis2={ title:'1/HHI', overlaying:'y', side:'right' };
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
+  setCaption('Two diversity lenses: Shannon entropy (left axis) and the effective number of cuisines 1/HHI (right axis).');
 }
 
 function renderTable(){
@@ -283,6 +334,7 @@ function renderTable(){
   document.getElementById('tableWrap').innerHTML = html;
   document.getElementById('chart').style.display='none';
   document.getElementById('tableWrap').style.display='block';
+  setCaption('Each cell shows the count and (in parentheses) the YoY percentage change relative to the previous year.');
 }
 
 function baseLayoutTime(title){
@@ -296,18 +348,16 @@ function baseLayoutTime(title){
     shapes: vertRefs()
   };
 }
-
 function baseLayoutCat(title){
   return {
     title:{text:title, font:{size:16}},
     paper_bgcolor:'rgba(0,0,0,0)',
     plot_bgcolor:'rgba(0,0,0,0)',
-    margin:{t:48,r:20,b:80,l:56},
+    margin:{t:48,r:20,b:90,l:56},
     xaxis:{title:'Cuisine', type:'category', tickangle:-30, gridcolor:'rgba(255,255,255,.08)'},
     yaxis:{title:'Net change', gridcolor:'rgba(255,255,255,.08)'}
   };
 }
-
 function vertRefs(){
   const refs = [];
   [2019,2022].forEach(v => {
@@ -320,21 +370,22 @@ function vertRefs(){
   });
   return refs;
 }
-
 function sumCuisine(row){
   return Object.keys(row).reduce((acc,k)=> k==='__Year'? acc : acc + (+row[k]||0), 0);
 }
-
 function setActive(btn){
   document.querySelectorAll('.tabbar .btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
 }
-
+function setCaption(text){
+  document.getElementById('caption').textContent = text;
+}
 function render(){
   // view switcher
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('chart').style.display='block';
   if (state.view==='total') lineTotal();
+  if (state.view==='cline') cuisineLine();
   if (state.view==='net') netChange();
   if (state.view==='indexed') indexedGrowth();
   if (state.view==='yoy') yoy();
@@ -351,10 +402,21 @@ document.getElementById('loadBtn').addEventListener('click', ()=>{
 document.getElementById('applyFilter').addEventListener('click', render);
 document.getElementById('resetFilter').addEventListener('click', ()=>{
   document.querySelectorAll('#cuisineList input:checked').forEach(i=> i.checked=false);
-  document.getElementById('topN').value = 6;
+  const defaultTopN = Math.min(8, state.cuisines.length);
+  document.getElementById('topN').value = defaultTopN;
   document.getElementById('yearStart').value = Math.min(...state.years);
   document.getElementById('yearEnd').value = Math.max(...state.years);
+  document.getElementById('singleCuisine').selectedIndex = 0;
   render();
+});
+document.getElementById('selectAll').addEventListener('click', ()=>{
+  document.querySelectorAll('#cuisineList input').forEach(i=> i.checked=true);
+});
+document.getElementById('clearAll').addEventListener('click', ()=>{
+  document.querySelectorAll('#cuisineList input').forEach(i=> i.checked=false);
+});
+document.getElementById('singleCuisine').addEventListener('change', ()=>{
+  if (state.view==='cline') render();
 });
 document.querySelectorAll('.tabbar .btn').forEach(b=>{
   b.addEventListener('click', ()=>{
