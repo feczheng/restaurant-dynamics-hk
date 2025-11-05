@@ -3,15 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hong Kong Restaurant Dynamics • Interactive (Year Dropdowns)</title>
+<title>Hong Kong Restaurant Dynamics • Interactive (Clean Sidebar)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
-:root{
-  --bg:#05070d;--card:#0e1422;--ink:#f6f9ff;--muted:#b9c7e6;--accent:#7aa7ff;--accent2:#7ee787;
-  --border:rgba(255,255,255,.14);
-}
+:root{ --bg:#05070d;--card:#0e1422;--ink:#f6f9ff;--muted:#b9c7e6;--accent:#7aa7ff;--accent2:#7ee787;--border:rgba(255,255,255,.14);}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
@@ -24,10 +21,7 @@ h1{font-size:22px;margin:0}
 .grid{display:grid;gap:12px}
 @media(min-width:980px){.grid{grid-template-columns:300px 1fr}}
 label{display:block;color:var(--muted);font-size:13px;margin:8px 0 4px}
-select, input[type="text"]{
-  width:100%;background:#0a0f1a;border:1px solid var(--border);color:var(--ink);
-  padding:8px 10px;border-radius:10px;outline:none;
-}
+select, input[type="text"]{width:100%;background:#0a0f1a;border:1px solid var(--border);color:var(--ink);padding:8px 10px;border-radius:10px;outline:none;}
 .checkbox-list{max-height:210px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:8px}
 .checkbox-list label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--ink)}
 .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -54,19 +48,11 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 <div class="container">
   <header>
     <h1>Hong Kong Restaurant Dynamics • Interactive (2016–2025)</h1>
-    <span class="badge">Year dropdowns • High-contrast</span>
+    <span class="badge">Clean sidebar • High-contrast</span>
   </header>
 
   <div class="grid">
     <aside class="card">
-      <label>Data folder</label>
-      <div class="row">
-        <input id="dataFolder" type="text" value="./data/" />
-        <button class="btn" id="loadBtn">Load CSV</button>
-      </div>
-      <small class="help">Place CSVs in this folder: <code>year_cuisine_counts_wide.csv</code>, <code>yearly_totals_summary.csv</code>.</small>
-
-      <hr/>
       <label>Base year</label>
       <select id="yearStart">
         <option value="2016">2016</option>
@@ -94,12 +80,7 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 <option value="2024">2024</option>
 <option value="2025">2025</option>
       </select>
-      <small class="help">Year range is constrained to 2016–2025. Last year will not be earlier than base year.</small>
-
-      <label>Top N cuisines (used when none picked)</label>
-      <select id="topN">
-        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option>
-      </select>
+      <small class="help">Range fixed to 2016–2025. Last year will not be earlier than base year.</small>
 
       <label>Pick cuisines (optional)</label>
       <div class="toolbar">
@@ -142,48 +123,32 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
   </div>
 
   <footer>
-    <p class="smallnote">This app uses fixed dropdowns for years (2016–2025) and high-contrast charts for classroom visibility.</p>
+    <p class="smallnote">This build auto-loads CSVs from <code>./data/</code> and hides data-folder and Top-N controls for a cleaner classroom UI.</p>
   </footer>
 </div>
 
 <script>
-// High-contrast style (same as previous contrast version)
-const COLORWAY = [
-  '#60a5fa','#22c55e','#f43f5e','#f59e0b','#a855f7','#06b6d4','#f472b6','#94a3b8',
-  '#16a34a','#fb7185','#fcd34d','#8b5cf6'
-];
+// High-contrast constants
+const COLORWAY = ['#60a5fa','#22c55e','#f43f5e','#f59e0b','#a855f7','#06b6d4','#f472b6','#94a3b8','#16a34a','#fb7185','#fcd34d','#8b5cf6'];
 const AXIS_LINE = {showline:true, linewidth:1.6, linecolor:'rgba(255,255,255,.75)'};
 const GRID_COLOR = 'rgba(255,255,255,.18)';
 const TICK_FONT = {color:'#f6f9ff', size:13};
 const TITLE_FONT = {color:'#f6f9ff', size:16};
+const DEFAULT_TOPN = 8;
 
-const FIXED_YEARS = Array.from({length: 10}, (_,i)=>2016+i); // 2016..2025
+const state = { ycWide:null, totals:null, years:[], cuisines:[], view:'total' };
 
-const state = {
-  dataFolder:'./data/',
-  ycWide:null,
-  totals:null,
-  years:[],
-  cuisines:[],
-  view:'total'
-};
-
-function csvUrl(name){ return state.dataFolder.replace(/\/?$/, '/') + name; }
+function csvUrl(name){ return './data/' + name; }
 
 async function loadData(){
-  const wideUrl = csvUrl('year_cuisine_counts_wide.csv');
-  const totalsUrl = csvUrl('yearly_totals_summary.csv');
-  const [wide, totals] = await Promise.all([parseCSV(wideUrl), parseCSV(totalsUrl)]);
+  const [wide, totals] = await Promise.all([parseCSV(csvUrl('year_cuisine_counts_wide.csv')), parseCSV(csvUrl('yearly_totals_summary.csv'))]);
   state.ycWide = wide;
   state.totals = totals;
   state.years = wide.map(r => +r['__Year']);
   state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year');
 
-  // defaults for dropdowns
   document.getElementById('yearStart').value = 2016;
   document.getElementById('yearEnd').value = 2025;
-  const defaultTopN = Math.min(8, state.cuisines.length);
-  document.getElementById('topN').value = String(defaultTopN);
 
   renderCuisineList(state.cuisines);
   renderSingleCuisine(state.cuisines);
@@ -192,11 +157,8 @@ async function loadData(){
 
 function parseCSV(url){
   return new Promise((resolve, reject)=>{
-    Papa.parse(url, {
-      download:true, header:true, dynamicTyping:true, skipEmptyLines:true,
-      complete:(res)=> resolve(res.data),
-      error: reject
-    });
+    Papa.parse(url, {download:true, header:true, dynamicTyping:true, skipEmptyLines:true,
+      complete:(res)=> resolve(res.data), error: reject});
   });
 }
 
@@ -213,31 +175,18 @@ function renderCuisineList(list){
 function renderSingleCuisine(list){
   const sel = document.getElementById('singleCuisine');
   sel.innerHTML = '';
-  list.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    sel.appendChild(opt);
-  });
+  list.forEach(c => { const opt = document.createElement('option'); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
 }
 
-// dropdown validation: ensure start <= end
+// year dropdown validation
 const ysSel = document.getElementById('yearStart');
 const yeSel = document.getElementById('yearEnd');
-ysSel.addEventListener('change', ()=>{
-  const s = parseInt(ysSel.value,10);
-  let e = parseInt(yeSel.value,10);
-  if(e < s) yeSel.value = String(s);
-});
-yeSel.addEventListener('change', ()=>{
-  const s = parseInt(ysSel.value,10);
-  let e = parseInt(yeSel.value,10);
-  if(e < s) ysSel.value = String(e);
-});
+ysSel.addEventListener('change', ()=>{ if (+yeSel.value < +ysSel.value) yeSel.value = ysSel.value; });
+yeSel.addEventListener('change', ()=>{ if (+yeSel.value < +ysSel.value) ysSel.value = yeSel.value; });
 
 function getFiltered(){
-  const s = parseInt(document.getElementById('yearStart').value,10);
-  const e = parseInt(document.getElementById('yearEnd').value,10);
-  const topN = parseInt(document.getElementById('topN').value,10) || 8;
+  const s = +document.getElementById('yearStart').value;
+  const e = +document.getElementById('yearEnd').value;
   const picked = Array.from(document.querySelectorAll('#cuisineList input:checked')).map(i=>i.value);
 
   const rows = state.ycWide.filter(r => r['__Year'] >= s && r['__Year'] <= e);
@@ -248,9 +197,10 @@ function getFiltered(){
   } else {
     const totals = Object.fromEntries(cuisines.map(c=>[c,0]));
     rows.forEach(r => cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
+    const topN = Math.min(DEFAULT_TOPN, cuisines.length);
     use = Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0, topN).map(([c,_])=>c);
   }
-  return { rows, use, years: rows.map(r=>+r['__Year']), topN, picked };
+  return { rows, use, years: rows.map(r=>+r['__Year']), picked };
 }
 
 function lineTotal(){
@@ -259,7 +209,7 @@ function lineTotal(){
   const data = [{ x: years, y: vals, mode:'lines+markers', name:'Total restaurants', line:{width:3}, marker:{size:7} }];
   const layout = baseLayoutTime('Total restaurants by year');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Total restaurants by year. Use the Base/Last year dropdowns to focus on a period.');
+  setCaption('Total restaurants by year. Use Base/Last year dropdowns to focus on a period.');
 }
 
 function cuisineLine(){
@@ -270,28 +220,34 @@ function cuisineLine(){
   const layout = baseLayoutTime(`Cuisine line: ${sel}`);
   layout.yaxis.title = 'Count';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Single-cuisine time series with fixed base/last year selection on the left.');
+  setCaption('Single-cuisine time series with fixed Base/Last year selection on the left.');
 }
 
 function netChange(){
-  const {rows, use, topN, picked} = getFiltered();
+  const {rows, use, picked} = getFiltered();
   if (!rows.length) { Plotly.purge('chart'); return; }
   const first = rows[0], last = rows[rows.length-1];
   let finalUse = use.slice(0);
-  if (picked.length && finalUse.length < topN){
+  if (picked.length && finalUse.length < DEFAULT_TOPN){
     const totals = Object.fromEntries(state.cuisines.map(c=>[c,0]));
     rows.forEach(r => state.cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
-    const fillers = Object.entries(totals).filter(([c,_]) => !finalUse.includes(c)).sort((a,b)=>b[1]-a[1]).slice(0, topN-finalUse.length).map(([c,_])=>c);
+    const fillers = Object.entries(totals).filter(([c,_]) => !finalUse.includes(c)).sort((a,b)=>b[1]-a[1]).slice(0, DEFAULT_TOPN-finalUse.length).map(([c,_])=>c);
     finalUse = finalUse.concat(fillers);
   }
   const items = finalUse.map(c => ({ c, v: (+last[c]||0) - (+first[c]||0) }));
   items.sort((a,b)=> b.v - a.v);
-  const data = [{ type:'bar', x: items.map(i=>i.c), y: items.map(i=>i.v),
-    text: items.map(i=> String(i.v)), textposition:'outside', cliponaxis:false,
-    marker:{line:{color:'rgba(255,255,255,.45)', width:1}} }];
+  const data = [{
+    type:'bar',
+    x: items.map(i=>i.c),
+    y: items.map(i=>i.v),
+    text: items.map(i=> String(i.v)),
+    textposition:'outside',
+    cliponaxis:false,
+    marker:{line:{color:'rgba(255,255,255,.45)', width:1}}
+  }];
   const layout = baseLayoutCat('Net change (first→last in range)');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Net change within the Base→Last year window. Bars are sorted by change; auto-fills to Top N when few cuisines are picked.');
+  setCaption('Net change within the Base→Last year window. Bars sorted by change; auto-fills to Top 8 when few cuisines are picked.');
 }
 
 function indexedGrowth(){
@@ -305,7 +261,7 @@ function indexedGrowth(){
   const layout = baseLayoutTime(`Indexed growth by cuisine (base=${years[0]}=100)`);
   layout.yaxis.title = 'Index';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Relative growth with base-year = 100. Use dropdowns to change the comparison window.');
+  setCaption('Relative growth with base-year = 100.');
 }
 
 function yoy(){
@@ -317,7 +273,7 @@ function yoy(){
   const layout = baseLayoutTime('YoY net additions by cuisine');
   layout.yaxis.zeroline = true;
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Annual momentum (above zero = expansion; below zero = contraction). Window controlled by the year dropdowns.');
+  setCaption('Annual momentum (above zero = expansion; below zero = contraction).');
 }
 
 function share(){
@@ -329,7 +285,7 @@ function share(){
   const layout = baseLayoutTime('Cuisine share trajectories');
   layout.yaxis.tickformat = ',.0%';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Percentage shares across time in the selected window (Base→Last year).');
+  setCaption('Percentage shares across time in the selected window.');
 }
 
 function diversity(){
@@ -350,7 +306,7 @@ function diversity(){
   layout.yaxis.title='H';
   layout.yaxis2={ title:'1/HHI', overlaying:'y', side:'right', tickfont:TICK_FONT, showline:true, linecolor:AXIS_LINE.linecolor, linewidth:AXIS_LINE.linewidth, gridcolor:GRID_COLOR };
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Diversity metrics for the selected Base→Last window.');
+  setCaption('Diversity metrics for the selected window.');
 }
 
 function renderTable(){
@@ -366,8 +322,7 @@ function renderTable(){
         const prev = (+rows[i-1][c]||0);
         const pct = prev? (((val-prev)/prev*100).toFixed(1))+'%' : 'n/a';
         const sign = (prev && (val-prev)>=0) ? '+' : '';
-        tr += `<td>${val} (${
-sign}${pct})</td>`;
+        tr += `<td>${val} (${sign}${pct})</td>`;
       }
     });
     html += `<tr>${tr}</tr>`;
@@ -416,16 +371,9 @@ function vertRefs(){
   });
   return refs;
 }
-function sumCuisine(row){
-  return Object.keys(row).reduce((acc,k)=> k==='__Year'? acc : acc + (+row[k]||0), 0);
-}
-function setActive(btn){
-  document.querySelectorAll('.tabbar .btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
-function setCaption(text){
-  document.getElementById('caption').textContent = text;
-}
+function sumCuisine(row){ return Object.keys(row).reduce((acc,k)=> k==='__Year'? acc : acc + (+row[k]||0), 0); }
+function setActive(btn){ document.querySelectorAll('.tabbar .btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+function setCaption(text){ document.getElementById('caption').textContent = text; }
 function render(){
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('chart').style.display='block';
@@ -440,14 +388,9 @@ function render(){
 }
 
 // UI bindings
-document.getElementById('loadBtn').addEventListener('click', ()=>{
-  state.dataFolder = document.getElementById('dataFolder').value || './data/';
-  loadData().catch(err=> alert('Failed to load CSVs: '+ err));
-});
 document.getElementById('applyFilter').addEventListener('click', render);
 document.getElementById('resetFilter').addEventListener('click', ()=>{
   document.querySelectorAll('#cuisineList input:checked').forEach(i=> i.checked=false);
-  document.getElementById('topN').value = '8';
   document.getElementById('yearStart').value = '2016';
   document.getElementById('yearEnd').value = '2025';
   document.getElementById('singleCuisine').selectedIndex = 0;
@@ -463,27 +406,19 @@ document.getElementById('singleCuisine').addEventListener('change', ()=>{
   if (state.view==='cline') render();
 });
 document.querySelectorAll('.tabbar .btn').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    setActive(b); state.view = b.dataset.view; render();
-  });
+  b.addEventListener('click', ()=>{ setActive(b); state.view = b.dataset.view; render(); });
 });
 document.getElementById('dlPNG').addEventListener('click', async ()=>{
-  if (state.view==='table'){
-    alert('Switch to a chart to download PNG.');
-    return;
-  }
+  if (state.view==='table'){ alert('Switch to a chart to download PNG.'); return; }
   const gd = document.getElementById('chart');
   const url = await Plotly.toImage(gd, {format:'png', width:1280, height:720, scale:2});
-  const a = document.createElement('a'); a.href = url; a.download = 'chart.png';
-  a.click();
+  const a = document.createElement('a'); a.href = url; a.download = 'chart.png'; a.click();
 });
 document.getElementById('dlCSV').addEventListener('click', ()=>{
   const {rows, use} = getFiltered();
   const header = ['__Year'].concat(use);
   const lines = [header.join(',')];
-  rows.forEach(r=>{
-    lines.push([r['__Year']].concat(use.map(c=> r[c])).join(','));
-  });
+  rows.forEach(r=>{ lines.push([r['__Year']].concat(use.map(c=> r[c])).join(',')); });
   const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = 'filtered_data.csv'; a.click();
@@ -491,9 +426,7 @@ document.getElementById('dlCSV').addEventListener('click', ()=>{
 });
 
 // Auto-load defaults
-loadData().catch(()=>{
-  console.warn('Waiting for CSVs in ./data/. Set the folder path then click Load CSV.');
-});
+loadData().catch(()=>{ console.warn('Waiting for CSVs in ./data/.'); });
 </script>
 </body>
 </html>
