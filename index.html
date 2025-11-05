@@ -98,14 +98,14 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 
     <main class="card">
       <div class="tabbar">
-        <button class="btn active" data-view="total">All Cuisine Line</button>
+        <button class="btn active" data-view="table">Table</button>
+        <button class="btn" data-view="total">All Cuisine Line</button>
         <button class="btn" data-view="cline">Cuisine line (selected)</button>
         <button class="btn" data-view="net">Net change bar (first→last)</button>
         <button class="btn" data-view="indexed">Indexed growth (base=first)</button>
         <button class="btn" data-view="yoy">YoY net additions</button>
         <button class="btn" data-view="share">Share trajectories</button>
         <button class="btn" data-view="diversity">Diversity over time</button>
-        <button class="btn" data-view="table">Table</button>
       </div>
       <div id="chart" style="height:560px;"></div>
       <div id="tableWrap" style="display:none; max-height:560px; overflow:auto;"></div>
@@ -127,7 +127,7 @@ const TICK_FONT = {color:'#f6f9ff', size:13};
 const TITLE_FONT = {color:'#f6f9ff', size:16};
 const DEFAULT_TOPN = 8;
 
-const state = { ycWide:null, totals:null, years:[], cuisines:[], view:'total' };
+const state = { ycWide:null, totals:null, years:[], cuisines:[], view:'table' };
 
 function csvUrl(name){ return './data/' + name; }
 
