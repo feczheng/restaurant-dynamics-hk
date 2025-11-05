@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hong Kong Restaurant Dynamics • Interactive (Clean v2)</title>
+<title>Hong Kong Restaurant Dynamics • Interactive (Clean v3)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -48,7 +48,7 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 <div class="container">
   <header>
     <h1>Hong Kong Restaurant Dynamics • Interactive (2016–2025)</h1>
-    <span class="badge">Clean sidebar v2 • High-contrast</span>
+    <span class="badge">Clean sidebar v3 • High-contrast</span>
   </header>
 
   <div class="grid">
@@ -93,13 +93,6 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
         <button class="btn" id="applyFilter">Apply filters</button>
         <button class="btn secondary" id="resetFilter">Reset</button>
       </div>
-
-      <hr/>
-      <label>Export</label>
-      <div class="toolbar">
-        <button class="btn" id="dlPNG">Download chart PNG</button>
-        <button class="btn" id="dlCSV">Download filtered CSV</button>
-      </div>
     </aside>
 
     <main class="card">
@@ -120,7 +113,7 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
   </div>
 
   <footer>
-    <p class="smallnote">This build auto-loads CSVs from <code>./data/</code>; the “Cuisine line” now uses the checkbox selection (multiple lines allowed). When none are checked, it falls back to Top 8.</p>
+    <p class="smallnote"></p>
   </footer>
 </div>
 
@@ -142,7 +135,7 @@ async function loadData(){
   state.ycWide = wide;
   state.totals = totals;
   state.years = wide.map(r => +r['__Year']);
-  state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year');
+  state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year']);
 
   document.getElementById('yearStart').value = 2016;
   document.getElementById('yearEnd').value = 2025;
@@ -402,22 +395,6 @@ document.getElementById('clearAll').addEventListener('click', ()=>{
 });
 document.querySelectorAll('.tabbar .btn').forEach(b=>{
   b.addEventListener('click', ()=>{ setActive(b); state.view = b.dataset.view; render(); });
-});
-document.getElementById('dlPNG').addEventListener('click', async ()=>{
-  if (state.view==='table'){ alert('Switch to a chart to download PNG.'); return; }
-  const gd = document.getElementById('chart');
-  const url = await Plotly.toImage(gd, {format:'png', width:1280, height:720, scale:2});
-  const a = document.createElement('a'); a.href = url; a.download = 'chart.png'; a.click();
-});
-document.getElementById('dlCSV').addEventListener('click', ()=>{
-  const {rows, use} = getFiltered();
-  const header = ['__Year'].concat(use);
-  const lines = [header.join(',')];
-  rows.forEach(r=>{ lines.push([r['__Year']].concat(use.map(c=> r[c])).join(',')); });
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'filtered_data.csv'; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
 });
 
 // Auto-load defaults
