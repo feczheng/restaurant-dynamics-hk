@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hong Kong Restaurant Dynamics • Interactive (Clean v4)</title>
+<title>Hong Kong Restaurant Dynamics • Interactive (Clean v5)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -49,7 +49,7 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 <div class="container">
   <header>
     <h1>Hong Kong Restaurant Dynamics • Interactive (2016–2025)</h1>
-    <span class="badge">Clean sidebar v4 • High-contrast</span>
+    <span class="badge">Clean sidebar v5 • High-contrast</span>
   </header>
 
   <div class="grid">
@@ -137,7 +137,7 @@ async function loadData(){
     state.ycWide = wide;
     state.totals = totals;
     state.years = wide.map(r => +r['__Year']);
-    state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year'); // FIXED
+    state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year');
     document.getElementById('yearStart').value = 2016;
     document.getElementById('yearEnd').value = 2025;
     renderCuisineList(state.cuisines);
@@ -163,7 +163,8 @@ function renderCuisineList(list){
   list.forEach(c => {
     const id = 'c_' + c.replace(/\W+/g,'_');
     const div = document.createElement('div');
-    div.innerHTML = `<label><input type="checkbox" value="\${c}" id="\${id}"><span>\${c}</span></label>`;
+    // FIX: use real template literals, no escaping
+    div.innerHTML = `<label><input type="checkbox" value="${c}" id="${id}"><span>${c}</span></label>`;
     wrap.appendChild(div);
   });
 }
@@ -256,7 +257,7 @@ function indexedGrowth(){
     const y = rows.map(r => baseVal? ((+r[c])/baseVal)*100 : 0);
     return { x: years, y, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
   });
-  const layout = baseLayoutTime(`Indexed growth by cuisine (base=\${years[0]}=100)`);
+  const layout = baseLayoutTime(`Indexed growth by cuisine (base=${years[0]}=100)`);
   layout.yaxis.title = 'Index';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
   setCaption('Relative growth with base-year = 100.');
@@ -310,20 +311,20 @@ function diversity(){
 function renderTable(){
   const {rows, use, years} = getFiltered();
   const head = ['Cuisine'].concat(years.map(y=>String(y)));
-  let html = '<table><thead><tr>'+ head.map(h=>`<th>\${h}</th>`).join('') + '</tr></thead><tbody>';
+  let html = '<table><thead><tr>'+ head.map(h=>`<th>${h}</th>`).join('') + '</tr></thead><tbody>';
   use.forEach(c => {
-    let tr = `<td>\${c}</td>`;
+    let tr = `<td>${c}</td>`;
     rows.forEach((r,i)=>{
       const val = (+r[c]||0);
-      if(i===0){ tr += `<td>\${val}</td>`; }
+      if(i===0){ tr += `<td>${val}</td>`; }
       else {
         const prev = (+rows[i-1][c]||0);
         const pct = prev? (((val-prev)/prev*100).toFixed(1))+'%' : 'n/a';
         const sign = (prev && (val-prev)>=0) ? '+' : '';
-        tr += `<td>\${val} (\${sign}\${pct})</td>`;
+        tr += `<td>${val} (${sign}${pct})</td>`;
       }
     });
-    html += `<tr>\${tr}</tr>`;
+    html += `<tr>${tr}</tr>`;
   });
   html += '</tbody></table>';
   document.getElementById('tableWrap').innerHTML = html;
