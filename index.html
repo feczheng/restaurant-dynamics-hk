@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hong Kong Restaurant Dynamics • Interactive (Clean Sidebar)</title>
+<title>Hong Kong Restaurant Dynamics • Interactive (Clean v2)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -21,7 +21,7 @@ h1{font-size:22px;margin:0}
 .grid{display:grid;gap:12px}
 @media(min-width:980px){.grid{grid-template-columns:300px 1fr}}
 label{display:block;color:var(--muted);font-size:13px;margin:8px 0 4px}
-select, input[type="text"]{width:100%;background:#0a0f1a;border:1px solid var(--border);color:var(--ink);padding:8px 10px;border-radius:10px;outline:none;}
+select{width:100%;background:#0a0f1a;border:1px solid var(--border);color:var(--ink);padding:8px 10px;border-radius:10px;outline:none;}
 .checkbox-list{max-height:210px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:8px}
 .checkbox-list label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--ink)}
 .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -48,7 +48,7 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 <div class="container">
   <header>
     <h1>Hong Kong Restaurant Dynamics • Interactive (2016–2025)</h1>
-    <span class="badge">Clean sidebar • High-contrast</span>
+    <span class="badge">Clean sidebar v2 • High-contrast</span>
   </header>
 
   <div class="grid">
@@ -89,9 +89,6 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
       </div>
       <div id="cuisineList" class="checkbox-list"></div>
 
-      <label>Single cuisine (for “Cuisine line” view)</label>
-      <select id="singleCuisine"></select>
-
       <div class="toolbar">
         <button class="btn" id="applyFilter">Apply filters</button>
         <button class="btn secondary" id="resetFilter">Reset</button>
@@ -107,8 +104,8 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 
     <main class="card">
       <div class="tabbar">
-        <button class="btn active" data-view="total">Total line</button>
-        <button class="btn" data-view="cline">Cuisine line</button>
+        <button class="btn active" data-view="total">All Cuisine Line</button>
+        <button class="btn" data-view="cline">Cuisine line (selected)</button>
         <button class="btn" data-view="net">Net change bar (first→last)</button>
         <button class="btn" data-view="indexed">Indexed growth (base=first)</button>
         <button class="btn" data-view="yoy">YoY net additions</button>
@@ -123,12 +120,12 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
   </div>
 
   <footer>
-    <p class="smallnote">This build auto-loads CSVs from <code>./data/</code> and hides data-folder and Top-N controls for a cleaner classroom UI.</p>
+    <p class="smallnote">This build auto-loads CSVs from <code>./data/</code>; the “Cuisine line” now uses the checkbox selection (multiple lines allowed). When none are checked, it falls back to Top 8.</p>
   </footer>
 </div>
 
 <script>
-// High-contrast constants
+// Visual constants
 const COLORWAY = ['#60a5fa','#22c55e','#f43f5e','#f59e0b','#a855f7','#06b6d4','#f472b6','#94a3b8','#16a34a','#fb7185','#fcd34d','#8b5cf6'];
 const AXIS_LINE = {showline:true, linewidth:1.6, linecolor:'rgba(255,255,255,.75)'};
 const GRID_COLOR = 'rgba(255,255,255,.18)';
@@ -151,7 +148,6 @@ async function loadData(){
   document.getElementById('yearEnd').value = 2025;
 
   renderCuisineList(state.cuisines);
-  renderSingleCuisine(state.cuisines);
   render();
 }
 
@@ -172,13 +168,8 @@ function renderCuisineList(list){
     wrap.appendChild(div);
   });
 }
-function renderSingleCuisine(list){
-  const sel = document.getElementById('singleCuisine');
-  sel.innerHTML = '';
-  list.forEach(c => { const opt = document.createElement('option'); opt.value = c; opt.textContent = c; sel.appendChild(opt); });
-}
 
-// year dropdown validation
+// Year dropdown validation
 const ysSel = document.getElementById('yearStart');
 const yeSel = document.getElementById('yearEnd');
 ysSel.addEventListener('change', ()=>{ if (+yeSel.value < +ysSel.value) yeSel.value = ysSel.value; });
@@ -195,6 +186,7 @@ function getFiltered(){
   if (picked.length){
     use = picked.slice(0);
   } else {
+    // Top N by totals within window
     const totals = Object.fromEntries(cuisines.map(c=>[c,0]));
     rows.forEach(r => cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
     const topN = Math.min(DEFAULT_TOPN, cuisines.length);
@@ -203,24 +195,31 @@ function getFiltered(){
   return { rows, use, years: rows.map(r=>+r['__Year']), picked };
 }
 
+// 1) All-cuisine line (total)
 function lineTotal(){
   const years = state.totals.map(r=>+r['__Year']);
   const vals = state.totals.map(r=>+r['restaurants']);
-  const data = [{ x: years, y: vals, mode:'lines+markers', name:'Total restaurants', line:{width:3}, marker:{size:7} }];
-  const layout = baseLayoutTime('Total restaurants by year');
+  const data = [{ x: years, y: vals, mode:'lines+markers', name:'All cuisines (total)', line:{width:3}, marker:{size:7} }];
+  const layout = baseLayoutTime('All Cuisine Line');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Total restaurants by year. Use Base/Last year dropdowns to focus on a period.');
+  setCaption('All Cuisine Line: total restaurants across all cuisines by year.');
 }
 
-function cuisineLine(){
-  const sel = document.getElementById('singleCuisine').value;
-  const ys = state.years;
-  const series = state.ycWide.map(r => ({ y:(+r[sel]||0), x:r['__Year'] }));
-  const data = [{ x: ys, y: series.map(d=>d.y), mode:'lines+markers', name: sel, line:{width:3}, marker:{size:7} }];
-  const layout = baseLayoutTime(`Cuisine line: ${sel}`);
+// 2) Cuisine line (selected via checklist; compare multiple)
+function cuisineLineSelected(){
+  const {rows, use, years} = getFiltered();
+  const data = use.map(c => ({
+    x: years,
+    y: rows.map(r => +r[c] || 0),
+    mode:'lines+markers',
+    name: c,
+    line:{width:3},
+    marker:{size:7}
+  }));
+  const layout = baseLayoutTime('Cuisine line (selected)');
   layout.yaxis.title = 'Count';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Single-cuisine time series with fixed Base/Last year selection on the left.');
+  setCaption('Cuisine line: plots the checked cuisines as separate lines for side-by-side comparison. If none are checked, it falls back to Top 8 in the selected window.');
 }
 
 function netChange(){
@@ -331,7 +330,7 @@ function renderTable(){
   document.getElementById('tableWrap').innerHTML = html;
   document.getElementById('chart').style.display='none';
   document.getElementById('tableWrap').style.display='block';
-  setCaption('Table with YoY % in parentheses for the selected Base→Last window.');
+  setCaption('Table with YoY % in parentheses for the selected window.');
 }
 
 function baseLayoutTime(title){
@@ -378,7 +377,7 @@ function render(){
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('chart').style.display='block';
   if (state.view==='total') lineTotal();
-  if (state.view==='cline') cuisineLine();
+  if (state.view==='cline') cuisineLineSelected();
   if (state.view==='net') netChange();
   if (state.view==='indexed') indexedGrowth();
   if (state.view==='yoy') yoy();
@@ -393,7 +392,6 @@ document.getElementById('resetFilter').addEventListener('click', ()=>{
   document.querySelectorAll('#cuisineList input:checked').forEach(i=> i.checked=false);
   document.getElementById('yearStart').value = '2016';
   document.getElementById('yearEnd').value = '2025';
-  document.getElementById('singleCuisine').selectedIndex = 0;
   render();
 });
 document.getElementById('selectAll').addEventListener('click', ()=>{
@@ -401,9 +399,6 @@ document.getElementById('selectAll').addEventListener('click', ()=>{
 });
 document.getElementById('clearAll').addEventListener('click', ()=>{
   document.querySelectorAll('#cuisineList input').forEach(i=> i.checked=false);
-});
-document.getElementById('singleCuisine').addEventListener('change', ()=>{
-  if (state.view==='cline') render();
 });
 document.querySelectorAll('.tabbar .btn').forEach(b=>{
   b.addEventListener('click', ()=>{ setActive(b); state.view = b.dataset.view; render(); });
