@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hong Kong Restaurant Dynamics • 2016–2025 (Fixed Interactive)</title>
+<title>Hong Kong Restaurant Dynamics • Interactive (Clean v5)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
@@ -12,6 +12,7 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+a{color:var(--accent)}
 .container{max-width:1200px;margin:0 auto;padding:20px}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 h1{font-size:22px;margin:0}
@@ -23,46 +24,64 @@ label{display:block;color:var(--muted);font-size:13px;margin:8px 0 4px}
 select{width:100%;background:#0a0f1a;border:1px solid var(--border);color:var(--ink);padding:8px 10px;border-radius:10px;outline:none;}
 .checkbox-list{max-height:210px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:8px}
 .checkbox-list label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
 .btn{background:#0a0f1a;border:1px solid var(--accent);color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
 .btn:hover{background:rgba(122,167,255,.12)}
 .btn.secondary{border-color:var(--border);color:var(--muted)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+small.help{color:var(--muted)}
+footer{color:var(--muted);font-size:13px;margin-top:16px}
 .tabbar{display:flex;gap:6px;flex-wrap:wrap}
 .tabbar .btn{border-color:var(--border)}
 .tabbar .btn.active{border-color:var(--accent2)}
-.caption{color:var(--muted);font-size:13px;margin-top:6px}
-.empty{display:flex;align-items:center;justify-content:center;height:560px;color:var(--muted);}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 thead th{border-bottom:2px solid var(--border);background:#0a1020}
 tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
+.caption{color:var(--muted);font-size:13px;margin-top:6px}
+.smallnote{color:var(--muted);font-size:12px}
+.empty{display:flex;align-items:center;justify-content:center;height:520px;color:var(--muted);}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>Hong Kong Restaurant Dynamics • 2016–2025</h1>
-    <span class="badge">Fixed interactive build</span>
+    <h1>Hong Kong Restaurant Dynamics • Interactive (2016–2025)</h1>
+    <span class="badge">Clean sidebar v5 • High-contrast</span>
   </header>
 
   <div class="grid">
     <aside class="card">
       <label>Base year</label>
       <select id="yearStart">
-        <option value="2016">2016</option><option value="2017">2017</option><option value="2018">2018</option>
-        <option value="2019">2019</option><option value="2020">2020</option><option value="2021">2021</option>
-        <option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option>
-        <option value="2025">2025</option>
+        <option value="2016">2016</option>
+<option value="2017">2017</option>
+<option value="2018">2018</option>
+<option value="2019">2019</option>
+<option value="2020">2020</option>
+<option value="2021">2021</option>
+<option value="2022">2022</option>
+<option value="2023">2023</option>
+<option value="2024">2024</option>
+<option value="2025">2025</option>
       </select>
+
       <label>Last year</label>
       <select id="yearEnd">
-        <option value="2016">2016</option><option value="2017">2017</option><option value="2018">2018</option>
-        <option value="2019">2019</option><option value="2020">2020</option><option value="2021">2021</option>
-        <option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option>
-        <option value="2025">2025</option>
+        <option value="2016">2016</option>
+<option value="2017">2017</option>
+<option value="2018">2018</option>
+<option value="2019">2019</option>
+<option value="2020">2020</option>
+<option value="2021">2021</option>
+<option value="2022">2022</option>
+<option value="2023">2023</option>
+<option value="2024">2024</option>
+<option value="2025">2025</option>
       </select>
-      <small class="help" style="color:#b9c7e6">Range fixed to 2016–2025.</small>
+      <small class="help">Range fixed to 2016–2025. Last year will not be earlier than base year.</small>
 
       <label>Pick cuisines (optional)</label>
       <div class="toolbar">
@@ -72,7 +91,8 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
       <div id="cuisineList" class="checkbox-list"></div>
 
       <div class="toolbar">
-        <button class="btn" id="resetFilter">Reset</button>
+        <button class="btn" id="applyFilter">Apply filters</button>
+        <button class="btn secondary" id="resetFilter">Reset</button>
       </div>
     </aside>
 
@@ -83,7 +103,6 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
         <button class="btn" data-view="cline">Cuisine line (selected)</button>
         <button class="btn" data-view="net">Net change bar (first→last)</button>
         <button class="btn" data-view="indexed">Indexed growth (base=first)</button>
-        <button class="btn" data-view="tier_indexed">Tier indexed growth</button>
         <button class="btn" data-view="yoy">YoY net additions</button>
         <button class="btn" data-view="share">Share trajectories</button>
         <button class="btn" data-view="diversity">Diversity over time</button>
@@ -93,22 +112,44 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
       <p id="caption" class="caption"></p>
     </main>
   </div>
+
+  <footer>
+    <p class="smallnote"></p>
+  </footer>
 </div>
 
 <script>
-// ===== Visual constants =====
+// Visual constants
 const COLORWAY = ['#60a5fa','#22c55e','#f43f5e','#f59e0b','#a855f7','#06b6d4','#f472b6','#94a3b8','#16a34a','#fb7185','#fcd34d','#8b5cf6'];
-const AXIS_LINE = {showline:true, linewidth:1.6, linecolor:'rgba(255,255,255,.85)'};
+const AXIS_LINE = {showline:true, linewidth:1.6, linecolor:'rgba(255,255,255,.75)'};
 const GRID_COLOR = 'rgba(255,255,255,.18)';
 const TICK_FONT = {color:'#f6f9ff', size:13};
 const TITLE_FONT = {color:'#f6f9ff', size:16};
 const DEFAULT_TOPN = 8;
 
-// ===== Global state =====
 const state = { ycWide:null, totals:null, years:[], cuisines:[], view:'table' };
 
-// ===== CSV helpers =====
 function csvUrl(name){ return './data/' + name; }
+
+async function loadData(){
+  try {
+    const [wide, totals] = await Promise.all([parseCSV(csvUrl('year_cuisine_counts_wide.csv')), parseCSV(csvUrl('yearly_totals_summary.csv'))]);
+    state.ycWide = wide;
+    state.totals = totals;
+    state.years = wide.map(r => +r['__Year']);
+    state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year');
+    document.getElementById('yearStart').value = 2016;
+    document.getElementById('yearEnd').value = 2025;
+    renderCuisineList(state.cuisines);
+    render();
+  } catch(e) {
+    const el = document.getElementById('chart');
+    el.className = 'empty';
+    el.textContent = 'CSV not found. Put year_cuisine_counts_wide.csv and yearly_totals_summary.csv under ./data/';
+    console.error(e);
+  }
+}
+
 function parseCSV(url){
   return new Promise((resolve, reject)=>{
     Papa.parse(url, {download:true, header:true, dynamicTyping:true, skipEmptyLines:true,
@@ -116,247 +157,128 @@ function parseCSV(url){
   });
 }
 
-// ===== Layout helpers =====
-function vertRefs(){
-  const refs = [];
-  [2019,2022].forEach(v=>{
-    refs.push({type:'line', x0:v, x1:v, y0:0, y1:1, xref:'x', yref:'paper',
-      line:{dash:'dot', width:1.5, color:'rgba(255,255,255,.6)'}});
-  });
-  return refs;
-}
-function baseLayoutTime(title){
-  return {
-    title:{text:title, font:TITLE_FONT},
-    colorway: COLORWAY,
-    paper_bgcolor:'rgba(0,0,0,0)',
-    plot_bgcolor:'rgba(0,0,0,0)',
-    legend:{font:TICK_FONT,bgcolor:'#0e1422',bordercolor:'rgba(255,255,255,.25)',borderwidth:1},
-    margin:{t:48,r:20,b:56,l:64},
-    xaxis:Object.assign({title:'Year', tickmode:'linear', dtick:1, gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
-    yaxis:Object.assign({title:'Count', gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT, zerolinecolor:'rgba(255,255,255,.55)'}, AXIS_LINE),
-    hoverlabel:{bgcolor:'#0e1422',bordercolor:'#7aa7ff',font:{color:'#f6f9ff'}},
-    shapes: vertRefs()
-  };
-}
-function baseLayoutCat(title){
-  return {
-    title:{text:title, font:TITLE_FONT},
-    colorway: COLORWAY,
-    paper_bgcolor:'rgba(0,0,0,0)',
-    plot_bgcolor:'rgba(0,0,0,0)',
-    legend:{font:TICK_FONT,bgcolor:'#0e1422',bordercolor:'rgba(255,255,255,.25)',borderwidth:1},
-    margin:{t:48,r:20,b:100,l:64},
-    xaxis:Object.assign({title:'Cuisine', type:'category', tickangle:-30, gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
-    yaxis:Object.assign({title:'Net change', gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
-    hoverlabel:{bgcolor:'#0e1422',bordercolor:'#7aa7ff',font:{color:'#f6f9ff'}}
-  };
-}
-
-// ===== Data loading =====
-async function loadData(){
-  try {
-    const [wide, totals] = await Promise.all([
-      parseCSV(csvUrl('year_cuisine_counts_wide.csv')),
-      parseCSV(csvUrl('yearly_totals_summary.csv'))
-    ]);
-    if (!wide || !wide.length) throw new Error('Missing year_cuisine_counts_wide.csv');
-    state.ycWide = wide;
-    state.totals = totals || [];
-    state.years = wide.map(r => +r['__Year']);
-    state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year');
-
-    document.getElementById('yearStart').value = 2016;
-    document.getElementById('yearEnd').value = 2025;
-
-    renderCuisineList(state.cuisines);
-    render();
-  } catch(e) {
-    const el = document.getElementById('chart');
-    el.className = 'empty';
-    el.textContent = 'CSV not found. Put: ./data/year_cuisine_counts_wide.csv, ./data/yearly_totals_summary.csv, ./data/year_cuisine_tier_counts_long_2016_2025.csv';
-    console.error(e);
-  }
-}
-
-// ===== UI helpers =====
 function renderCuisineList(list){
   const wrap = document.getElementById('cuisineList');
   wrap.innerHTML = '';
-  list.forEach(c =>{
+  list.forEach(c => {
     const id = 'c_' + c.replace(/\W+/g,'_');
     const div = document.createElement('div');
+    // FIX: use real template literals, no escaping
     div.innerHTML = `<label><input type="checkbox" value="${c}" id="${id}"><span>${c}</span></label>`;
     wrap.appendChild(div);
   });
-  // Live re-render on any change
-  wrap.addEventListener('change', () => render(), {once:false});
 }
 
-function setActive(btn){
-  document.querySelectorAll('.tabbar .btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
-function setCaption(text){
-  document.getElementById('caption').textContent = text;
-}
-
-// ===== Filters =====
+// Year dropdown validation
 const ysSel = document.getElementById('yearStart');
 const yeSel = document.getElementById('yearEnd');
-ysSel.addEventListener('change', ()=>{ if (+yeSel.value < +ysSel.value) yeSel.value = ysSel.value; render(); });
-yeSel.addEventListener('change', ()=>{ if (+yeSel.value < +ysSel.value) ysSel.value = yeSel.value; render(); });
+ysSel.addEventListener('change', ()=>{ if (+yeSel.value < +ysSel.value) yeSel.value = ysSel.value; });
+yeSel.addEventListener('change', ()=>{ if (+yeSel.value < +ysSel.value) ysSel.value = yeSel.value; });
 
-document.getElementById('selectAll').addEventListener('click', ()=>{
-  document.querySelectorAll('#cuisineList input').forEach(i=> i.checked = true); // <- true (小写)
-  render();
-});
-document.getElementById('clearAll').addEventListener('click', ()=>{
-  document.querySelectorAll('#cuisineList input').forEach(i=> i.checked = false);
-  render();
-});
-document.getElementById('resetFilter').addEventListener('click', ()=>{
-  document.querySelectorAll('#cuisineList input').forEach(i=> i.checked = false);
-  ysSel.value = '2016'; yeSel.value = '2025';
-  render();
-});
-
-// Tab switching
-document.querySelectorAll('.tabbar .btn').forEach(b=>{
-  b.addEventListener('click', ()=>{ setActive(b); state.view = b.dataset.view; render(); });
-});
-
-// ===== Filtered slice =====
 function getFiltered(){
-  const s = +ysSel.value, e = +yeSel.value;
+  const s = +document.getElementById('yearStart').value;
+  const e = +document.getElementById('yearEnd').value;
   const picked = Array.from(document.querySelectorAll('#cuisineList input:checked')).map(i=>i.value);
+
   const rows = state.ycWide.filter(r => r['__Year'] >= s && r['__Year'] <= e);
   const cuisines = state.cuisines.slice();
   let use;
-  if (picked.length) use = picked.slice(0);
-  else {
-    // Top-N by totals in window
+  if (picked.length){
+    use = picked.slice(0);
+  } else {
+    // Top N by totals within window
     const totals = Object.fromEntries(cuisines.map(c=>[c,0]));
     rows.forEach(r => cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
-    const topN = Math.min(8, cuisines.length);
+    const topN = Math.min(DEFAULT_TOPN, cuisines.length);
     use = Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0, topN).map(([c,_])=>c);
   }
   return { rows, use, years: rows.map(r=>+r['__Year']), picked };
 }
 
-function sumCuisine(row){
-  return Object.keys(row).reduce((acc,k)=> k==='__Year'? acc : acc + (+row[k]||0), 0);
-}
-
-// ===== Views =====
+// 1) All-cuisine line (total)
 function lineTotal(){
-  const years = (state.totals||[]).map(r=>+r['__Year']);
-  const vals  = (state.totals||[]).map(r=>+r['restaurants']);
-  const data = [{ x:years, y:vals, mode:'lines+markers', name:'All cuisines (total)', line:{width:3}, marker:{size:7} }];
+  const years = state.totals.map(r=>+r['__Year']);
+  const vals = state.totals.map(r=>+r['restaurants']);
+  const data = [{ x: years, y: vals, mode:'lines+markers', name:'All cuisines (total)', line:{width:3}, marker:{size:7} }];
   const layout = baseLayoutTime('All Cuisine Line');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('All restaurants across years.');
+  setCaption('All Cuisine Line: total restaurants across all cuisines by year.');
 }
 
+// 2) Cuisine line (selected via checklist; compare multiple)
 function cuisineLineSelected(){
   const {rows, use, years} = getFiltered();
-  const data = use.map(c => ({ x: years, y: rows.map(r => +r[c] || 0), mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} }));
-  const layout = baseLayoutTime('Cuisine line (selected)'); layout.yaxis.title='Count';
+  const data = use.map(c => ({
+    x: years,
+    y: rows.map(r => +r[c] || 0),
+    mode:'lines+markers',
+    name: c,
+    line:{width:3},
+    marker:{size:7}
+  }));
+  const layout = baseLayoutTime('Cuisine line (selected)');
+  layout.yaxis.title = 'Count';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Checked cuisines as separate lines for comparison.');
+  setCaption('Cuisine line: plots the checked cuisines as separate lines for side-by-side comparison.');
 }
 
 function netChange(){
-  const {rows, use} = getFiltered();
+  const {rows, use, picked} = getFiltered();
   if (!rows.length) { Plotly.purge('chart'); return; }
   const first = rows[0], last = rows[rows.length-1];
-  const items = use.map(c => ({ c, v:(+last[c]||0) - (+first[c]||0) })).sort((a,b)=>b.v-a.v);
-  const data = [{ type:'bar', x:items.map(i=>i.c), y:items.map(i=>i.v),
-    text:items.map(i=> String(i.v)), textposition:'outside', cliponaxis:false,
-    marker:{line:{color:'rgba(255,255,255,.45)', width:1}} }];
+  let finalUse = use.slice(0);
+  if (picked.length && finalUse.length < DEFAULT_TOPN){
+    const totals = Object.fromEntries(state.cuisines.map(c=>[c,0]));
+    rows.forEach(r => state.cuisines.forEach(c => { totals[c] += (+r[c]||0); }));
+    const fillers = Object.entries(totals).filter(([c,_]) => !finalUse.includes(c)).sort((a,b)=>b[1]-a[1]).slice(0, DEFAULT_TOPN-finalUse.length).map(([c,_])=>c);
+    finalUse = finalUse.concat(fillers);
+  }
+  const items = finalUse.map(c => ({ c, v: (+last[c]||0) - (+first[c]||0) }));
+  items.sort((a,b)=> b.v - a.v);
+  const data = [{
+    type:'bar',
+    x: items.map(i=>i.c),
+    y: items.map(i=>i.v),
+    text: items.map(i=> String(i.v)),
+    textposition:'outside',
+    cliponaxis:false,
+    marker:{line:{color:'rgba(255,255,255,.45)', width:1}}
+  }];
   const layout = baseLayoutCat('Net change (first→last in range)');
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Change from base year to last year (sorted).');
+  setCaption('Net change within the Base→Last year window. Bars sorted by change; auto-fills to Top 8 when few cuisines are picked.');
 }
 
 function indexedGrowth(){
   const {rows, use, years} = getFiltered();
   const base = rows[0];
-  const data = use.map(c =>{
-    const b = (+base[c]||0);
-    const idx = rows.map(r => b ? ( (+r[c])/b )*100 : 0);
-    return { x: years, y: idx, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
+  const data = use.map(c => {
+    const baseVal = (+base[c]||0);
+    const y = rows.map(r => baseVal? ((+r[c])/baseVal)*100 : 0);
+    return { x: years, y, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
   });
-  const layout = baseLayoutTime(`Indexed growth by cuisine (base=${years[0]}=100)`); layout.yaxis.title='Index';
+  const layout = baseLayoutTime(`Indexed growth by cuisine (base=${years[0]}=100)`);
+  layout.yaxis.title = 'Index';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
   setCaption('Relative growth with base-year = 100.');
 }
 
-// ---- Tier indexed growth ----
-let tierLong=null;
-function parseLongRow(r){
-  const o={}; Object.keys(r).forEach(k=>o[String(k).toLowerCase().trim()]=r[k]);
-  return {year:+(o['year']||o['__year']||0), tier:+(o['tier']||o['uci_jenk']||o['t']||0), n:+(o['n']||o['count']||o['restaurants']||0)};
-}
-async function ensureTierLong(){
-  if (tierLong) return tierLong;
-  const names=['year_cuisine_tier_counts_long_2016_2025.csv','year_cuisine_tier_counts_long.csv'];
-  for (const n of names){
-    try{
-      const raw=await parseCSV(csvUrl(n));
-      const norm=raw.map(parseLongRow).filter(d=>d.year&&d.tier);
-      if(norm.length){ tierLong=norm; return tierLong; }
-    }catch(e){}
-  }
-  throw new Error('Tier-long CSV not found under ./data/');
-}
-async function tierIndexedGrowth(){
-  try{
-    const tl = await ensureTierLong();
-    const s = +ysSel.value, e = +yeSel.value;
-    const agg = new Map(); const yearsSet=new Set();
-    tl.forEach(r=>{
-      if (r.year>=s && r.year<=e){
-        const key=r.year+'|'+r.tier;
-        agg.set(key, (agg.get(key)||0) + (r.n||0));
-        yearsSet.add(r.year);
-      }
-    });
-    const years = Array.from(yearsSet).sort((a,b)=>a-b);
-    const tiers = [1,2,3,4];
-    const traces = tiers.map(t=>{
-      const vals = years.map(y => agg.get(y+'|'+t) || 0);
-      const b = vals.length ? vals[0] : 0;
-      const idx = vals.map(v => b ? (v/b)*100 : 0);
-      return { x:years, y:idx, mode:'lines+markers', name:'T'+t, line:{width:3}, marker:{size:7} };
-    });
-    const layout = baseLayoutTime(`Tier indexed growth (base=${years[0]}=100)`); layout.yaxis.title='Index';
-    Plotly.newPlot('chart', traces, layout, {displayModeBar:true});
-    setCaption('Tier-level indexed growth (sums across cuisines; base=first year = 100).');
-  }catch(err){
-    const el=document.getElementById('chart'); el.className='empty'; el.textContent=err.message;
-  }
-}
-
-// ---- YoY net additions (per selected cuisine) ----
 function yoy(){
   const {rows, use, years} = getFiltered();
-  const data = use.map(c=>{
-    const ys = years.slice();
-    const dy = rows.map((r,i) => i===0 ? 0 : (+r[c]||0) - (+rows[i-1][c]||0));
-    return { x: ys, y: dy, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
+  const data = use.map(c => {
+    const y = rows.map((r,i)=> i===0 ? 0 : (+r[c]||0) - (+rows[i-1][c]||0));
+    return { x: years, y, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
   });
-  const layout = baseLayoutTime('YoY net additions (selected cuisines)');
-  layout.yaxis.title = 'Δ count vs previous year';
+  const layout = baseLayoutTime('YoY net additions by cuisine');
+  layout.yaxis.zeroline = true;
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption('Year-over-year change for selected cuisines (first year shown as 0).');
+  setCaption('Annual momentum (above zero = expansion; below zero = contraction).');
 }
 
-// ---- Share & Diversity ----
 function share(){
   const {rows, use, years} = getFiltered();
   const data = use.map(c => {
-    const y = rows.map(r => { const s=sumCuisine(r); return s? (+r[c])/s : 0; });
+    const y = rows.map(r => { const s = sumCuisine(r); return s? (+r[c])/s : 0; });
     return { x: years, y, mode:'lines+markers', name:c, line:{width:3}, marker:{size:7} };
   });
   const layout = baseLayoutTime('Cuisine share trajectories');
@@ -364,12 +286,13 @@ function share(){
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
   setCaption('Percentage shares across time in the selected window.');
 }
+
 function diversity(){
   const {rows, years} = getFiltered();
   function entropy(ps){ return -ps.reduce((acc,p)=> acc + (p>0? p*Math.log(p):0), 0 ); }
   function hhi(ps){ return ps.reduce((acc,p)=> acc + p*p, 0 ); }
   const H=[], EN=[];
-  rows.forEach(r =>{
+  rows.forEach(r => {
     const s = sumCuisine(r);
     const ps = Object.keys(r).filter(k=>k!=='__Year').map(k => s? (+r[k])/s:0);
     H.push(entropy(ps)); EN.push(1/ hhi(ps));
@@ -380,16 +303,14 @@ function diversity(){
   ];
   const layout = baseLayoutTime('Diversity over time');
   layout.yaxis.title='H';
-  layout.yaxis2={ title:'1/HHI', overlaying:'y', side:'right', tickfont:TICK_FONT, showline:true,
-                  linecolor:AXIS_LINE.linecolor, linewidth:AXIS_LINE.linewidth, gridcolor:GRID_COLOR };
+  layout.yaxis2={ title:'1/HHI', overlaying:'y', side:'right', tickfont:TICK_FONT, showline:true, linecolor:AXIS_LINE.linecolor, linewidth:AXIS_LINE.linewidth, gridcolor:GRID_COLOR };
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
   setCaption('Diversity metrics for the selected window.');
 }
 
-// ---- Table renderer ----
 function renderTable(){
   const {rows, use, years} = getFiltered();
-  const head = ['Cuisine'].concat(years.map(String));
+  const head = ['Cuisine'].concat(years.map(y=>String(y)));
   let html = '<table><thead><tr>'+ head.map(h=>`<th>${h}</th>`).join('') + '</tr></thead><tbody>';
   use.forEach(c => {
     let tr = `<td>${c}</td>`;
@@ -412,22 +333,87 @@ function renderTable(){
   setCaption('Table with YoY % in parentheses for the selected window.');
 }
 
-// ---- Render switch ----
+function baseLayoutTime(title){
+  return {
+    title:{text:title, font:TITLE_FONT},
+    colorway: COLORWAY,
+    paper_bgcolor:'rgba(0,0,0,0)',
+    plot_bgcolor:'rgba(0,0,0,0)',
+    legend:{font:TICK_FONT,bgcolor:'#0e1422',bordercolor:'rgba(255,255,255,.25)',borderwidth:1},
+    margin:{t:48,r:20,b:56,l:64},
+    xaxis:Object.assign({title:'Year', tickmode:'linear', dtick:1, gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
+    yaxis:Object.assign({title:'Count', gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT, zerolinecolor:'rgba(255,255,255,.5)'}, AXIS_LINE),
+    hoverlabel:{bgcolor:'#0e1422',bordercolor:'#7aa7ff',font:{color:'#f6f9ff'}},
+    shapes: vertRefs()
+  };
+}
+function baseLayoutCat(title){
+  return {
+    title:{text:title, font:TITLE_FONT},
+    colorway: COLORWAY,
+    paper_bgcolor:'rgba(0,0,0,0)',
+    plot_bgcolor:'rgba(0,0,0,0)',
+    legend:{font:TICK_FONT,bgcolor:'#0e1422',bordercolor:'rgba(255,255,255,.25)',borderwidth:1},
+    margin:{t:48,r:20,b:100,l:64},
+    xaxis:Object.assign({title:'Cuisine', type:'category', tickangle:-30, gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
+    yaxis:Object.assign({title:'Net change', gridcolor:GRID_COLOR, tickfont:TICK_FONT, titlefont:TITLE_FONT}, AXIS_LINE),
+    hoverlabel:{bgcolor:'#0e1422',bordercolor:'#7aa7ff',font:{color:'#f6f9ff'}}
+  };
+}
+function vertRefs(){
+  const refs = [];
+  [2019,2022].forEach(v => {
+    if (state.years.includes(v)){
+      refs.push({
+        type:'line', x0:v, x1:v, y0:0, y1:1, xref:'x', yref:'paper',
+        line:{dash:'dot', width:1.5, color:'rgba(255,255,255,.6)'}
+      });
+    }
+  });
+  return refs;
+}
+function sumCuisine(row){
+  return Object.keys(row).reduce((acc,k)=> k==='__Year'? acc : acc + (+row[k]||0), 0);
+}
+function setActive(btn){
+  document.querySelectorAll('.tabbar .btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setCaption(text){
+  document.getElementById('caption').textContent = text;
+}
 function render(){
   document.getElementById('tableWrap').style.display='none';
   document.getElementById('chart').style.display='block';
-  if (state.view==='table') return renderTable();
-  if (state.view==='total') return lineTotal();
-  if (state.view==='cline') return cuisineLineSelected();
-  if (state.view==='net') return netChange();
-  if (state.view==='indexed') return indexedGrowth();
-  if (state.view==='tier_indexed') return tierIndexedGrowth();
-  if (state.view==='yoy') return yoy();
-  if (state.view==='share') return share();
-  if (state.view==='diversity') return diversity();
+  if (state.view==='total') lineTotal();
+  if (state.view==='cline') cuisineLineSelected();
+  if (state.view==='net') netChange();
+  if (state.view==='indexed') indexedGrowth();
+  if (state.view==='yoy') yoy();
+  if (state.view==='share') share();
+  if (state.view==='diversity') diversity();
+  if (state.view==='table') renderTable();
 }
 
-// ---- Boot ----
+// UI bindings
+document.getElementById('applyFilter').addEventListener('click', render);
+document.getElementById('resetFilter').addEventListener('click', ()=>{
+  document.querySelectorAll('#cuisineList input:checked').forEach(i=> i.checked=false);
+  document.getElementById('yearStart').value = '2016';
+  document.getElementById('yearEnd').value = '2025';
+  render();
+});
+document.getElementById('selectAll').addEventListener('click', ()=>{
+  document.querySelectorAll('#cuisineList input').forEach(i=> i.checked=true);
+});
+document.getElementById('clearAll').addEventListener('click', ()=>{
+  document.querySelectorAll('#cuisineList input').forEach(i=> i.checked=false);
+});
+document.querySelectorAll('.tabbar .btn').forEach(b=>{
+  b.addEventListener('click', ()=>{ setActive(b); state.view = b.dataset.view; render(); });
+});
+
+// Auto-load defaults
 loadData();
 </script>
 </body>
