@@ -1,9 +1,10 @@
-Main_Cuisine,net_change_2016_2025
-Western,948
-Mainland China,923
-Hong Kong Style,656
-Japanese,622
-South-east Asia,337
-Taiwan,257
-Korean,96
-Other,47
+Cuisine,Start_Year,Start_Count,End_Year,End_Count,Net_Change
+Hong Kong Style,2016,4274,2025,4680,406
+Chinese Mainland,2016,2763,2025,3624,861
+Japanese,2016,1360,2025,1953,593
+Korean,2016,238,2025,313,75
+Taiwan,2016,240,2025,465,225
+Thai,2016,369,2025,494,125
+Vietnamese,2016,153,2025,238,85
+Western,2016,3854,2025,4597,743
+Other,2016,227,2025,365,138
