@@ -135,8 +135,8 @@ async function loadData(){
   try {
     const [wide, totals] = await Promise.all([parseCSV(csvUrl('year_cuisine_counts_wide.csv')), parseCSV(csvUrl('yearly_totals_summary.csv'))]);
     state.ycWide = wide;
-    state.totals = totals;
-    state.years = wide.map(r => +r['__Year']);
+    state.totals = normalizeTotalsRows(totals);
+    state.years = wide.map(r => +((r['__Year']!==undefined)?r['__Year']:r['Year']));
     state.cuisines = Object.keys(wide[0]).filter(k => k !== '__Year');
     document.getElementById('yearStart').value = 2016;
     document.getElementById('yearEnd').value = 2025;
@@ -156,6 +156,29 @@ function parseCSV(url){
       complete:(res)=> resolve(res.data), error: reject});
   });
 }
+
+
+function normalizeTotalsRows(rows){
+  if(!rows || rows.length===0) return rows;
+  const cols = Object.keys(rows[0] || {});
+  const hasYear = cols.includes('__Year');
+  const hasYearAlt = cols.includes('Year');
+  const hasRest = cols.includes('restaurants');
+  const hasTotalAlt = cols.includes('Total') || cols.includes('total') || cols.includes('TOTAL');
+  return rows.map(r=>{
+    const o = Object.assign({}, r);
+    if(!hasYear && hasYearAlt) o['__Year'] = +r['Year'];
+    if(!hasRest && hasTotalAlt){
+      const v = (r['Total']!==undefined)?r['Total']:(r['total']!==undefined)?r['total']:r['TOTAL'];
+      o['restaurants'] = +v;
+    }
+    // If still strings, coerce
+    if(o['__Year']!==undefined) o['__Year'] = +o['__Year'];
+    if(o['restaurants']!==undefined) o['restaurants'] = +o['restaurants'];
+    return o;
+  }).filter(r=> Number.isFinite(r['__Year']));
+}
+
 
 function renderCuisineList(list){
   const wrap = document.getElementById('cuisineList');
