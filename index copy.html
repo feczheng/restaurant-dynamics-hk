@@ -90,14 +90,6 @@ tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
       </div>
       <div id="cuisineList" class="checkbox-list"></div>
 
-      <hr>
-      <label>Trendline</label>
-      <label style="display:flex;align-items:center;gap:8px;margin:6px 0;color:var(--ink)">
-        <input type="checkbox" id="toggleTrend">
-        <span>Show linear trendline in <em>Cuisine line (selected)</em></span>
-      </label>
-      <small class="help">Uses an OLS linear fit over the currently selected year window.</small>
-
       <div class="toolbar">
         <button class="btn" id="applyFilter">Apply filters</button>
         <button class="btn secondary" id="resetFilter">Reset</button>
@@ -136,29 +128,6 @@ const TITLE_FONT = {color:'#f6f9ff', size:16};
 const DEFAULT_TOPN = 8;
 
 const state = { ycWide:null, totals:null, years:[], cuisines:[], view:'table' };
-
-// Trendline toggle (applies to "Cuisine line (selected)" only)
-state.trendOn = false;
-
-function linearTrend(yYears, yVals){
-  // Ordinary least squares: y = a + b*x
-  const n = Math.min(yYears.length, yVals.length);
-  if (n < 2) return {a:0, b:0, yhat: yVals.slice(0,n)};
-  const x = yYears.slice(0,n).map(v=>+v);
-  const y = yVals.slice(0,n).map(v=>+v);
-  const xbar = x.reduce((acc,v)=>acc+v,0)/n;
-  const ybar = y.reduce((acc,v)=>acc+v,0)/n;
-  let num = 0, den = 0;
-  for (let i=0;i<n;i++){
-    const dx = x[i]-xbar;
-    num += dx*(y[i]-ybar);
-    den += dx*dx;
-  }
-  const b = den ? (num/den) : 0;
-  const a = ybar - b*xbar;
-  const yhat = x.map(v => a + b*v);
-  return {a,b,yhat};
-}
 
 function csvUrl(name){ return './data/' + name; }
 
@@ -262,39 +231,18 @@ function lineTotal(){
 // 2) Cuisine line (selected via checklist; compare multiple)
 function cuisineLineSelected(){
   const {rows, use, years} = getFiltered();
-  const data = [];
-  use.forEach(c => {
-    const y = rows.map(r => +r[c] || 0);
-    // Main series
-    data.push({
-      x: years,
-      y,
-      mode:'lines+markers',
-      name: c,
-      line:{width:3},
-      marker:{size:7}
-    });
-    // Optional trendline (same color; dotted; hidden from legend to reduce clutter)
-    if (state.trendOn && years.length >= 2){
-      const fit = linearTrend(years, y);
-      data.push({
-        x: years,
-        y: fit.yhat,
-        mode:'lines',
-        name: c + ' (trend)',
-        showlegend: false,
-        hoverinfo: 'skip',
-        line:{width:2, dash:'dot'}
-      });
-    }
-  });
+  const data = use.map(c => ({
+    x: years,
+    y: rows.map(r => +r[c] || 0),
+    mode:'lines+markers',
+    name: c,
+    line:{width:3},
+    marker:{size:7}
+  }));
   const layout = baseLayoutTime('Cuisine line (selected)');
   layout.yaxis.title = 'Count';
   Plotly.newPlot('chart', data, layout, {displayModeBar:true});
-  setCaption(state.trendOn
-    ? 'Cuisine line: plots the checked cuisines as separate lines for side-by-side comparison, with dotted OLS trendlines.'
-    : 'Cuisine line: plots the checked cuisines as separate lines for side-by-side comparison.'
-  );
+  setCaption('Cuisine line: plots the checked cuisines as separate lines for side-by-side comparison.');
 }
 
 function netChange(){
@@ -486,12 +434,6 @@ document.getElementById('clearAll').addEventListener('click', ()=>{
 });
 document.querySelectorAll('.tabbar .btn').forEach(b=>{
   b.addEventListener('click', ()=>{ setActive(b); state.view = b.dataset.view; render(); });
-});
-
-// Trendline toggle
-document.getElementById('toggleTrend').addEventListener('change', (e)=>{
-  state.trendOn = !!e.target.checked;
-  if (state.view === 'cline') render();
 });
 
 // Auto-load defaults
