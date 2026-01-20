@@ -263,16 +263,18 @@ function lineTotal(){
 function cuisineLineSelected(){
   const {rows, use, years} = getFiltered();
   const data = [];
-  use.forEach(c => {
+  use.forEach((c, i) => {
     const y = rows.map(r => +r[c] || 0);
+    // Ensure trendline uses the same color as its cuisine series (avoid Plotly auto-advancing colorway)
+    const col = COLORWAY[i % COLORWAY.length];
     // Main series
     data.push({
       x: years,
       y,
       mode:'lines+markers',
       name: c,
-      line:{width:3},
-      marker:{size:7}
+      line:{width:3, color: col},
+      marker:{size:7, color: col}
     });
     // Optional trendline (same color; dotted; hidden from legend to reduce clutter)
     if (state.trendOn && years.length >= 2){
@@ -284,7 +286,7 @@ function cuisineLineSelected(){
         name: c + ' (trend)',
         showlegend: false,
         hoverinfo: 'skip',
-        line:{width:2, dash:'dot'}
+        line:{width:2, dash:'dot', color: col}
       });
     }
   });
